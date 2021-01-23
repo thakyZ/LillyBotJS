@@ -4,7 +4,7 @@
   "description": "A discord bot for Neko Gaming",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node index.js"
   },
   "repository": {
     "type": "git",
@@ -20,5 +20,9 @@
   "bugs": {
     "url": "https://github.com/thakyz/LillyBotJS/issues"
   },
-  "homepage": "https://github.com/thakyz/LillyBotJS#readme"
+  "homepage": "https://github.com/thakyz/LillyBotJS#readme",
+  "dependencies": {
+    "discord.js": "^12.5.1",
+    "lodash": "^4.17.20"
+  }
 }
