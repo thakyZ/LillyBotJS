@@ -22,7 +22,7 @@ const defaultConfig = {
 let stringDefaultConfig = JSON.stringify(defaultConfig);
 let config = null;
 
-if(fs.existsSync(path.resolve(__dirname, "config.json") == false))
+if(fs.existsSync(path.resolve(__dirname, "config.json")) == false)
 {
   fs.writeFileSync(path.resolve(__dirname, "config.json"), JSON.stringify(defaultConfig, null, 2), { overwrite: false }, function(err) {
     if (err) throw err;
