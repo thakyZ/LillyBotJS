@@ -10,10 +10,10 @@ const defaultConfig = {
 //  prefix: "_",
 //  ruleCode: "<string of the code>",
   channelName: "<name of the channel to be sent in>",
-  guildId: "<id of the guild>",
-  readTheRulesRole: "<id of the role to give on correct>",
+  guildId: 0,
+  readTheRulesRole: 0,
   reactionEmoji: "<actual emoji>",
-  ruleMessageId: "<id of the rule message>",
+  ruleMessageId: 0,
   token: "<token of the bot>"
 };
 let stringDefaultConfig = JSON.stringify(defaultConfig);
@@ -45,7 +45,7 @@ function LoadConfig() {
 
   global.gConfig = JSON.parse(finalConfig);
 
-  console.log(`global.gConfig: ${JSON.stringify(global.gConfig, undefined, global.gConfig.json_indentation)}`);
+//  console.log(`global.gConfig: ${JSON.stringify(global.gConfig, undefined, global.gConfig.json_indentation)}`);
 
 //  const ruleCode = global.gConfig.ruleCode;
   channelName = global.gConfig.channelName;
