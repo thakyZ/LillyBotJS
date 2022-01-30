@@ -22,8 +22,8 @@
   },
   "homepage": "https://github.com/thakyz/LillyBotJS#readme",
   "dependencies": {
-    "discord.js": "^13.1.0",
+    "discord.js": "^13.6.0",
     "fs-extra": "^9.1.0",
-    "lodash": "^4.17.20"
+    "lodash": "^4.17.21"
   }
 }
