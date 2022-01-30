@@ -10,10 +10,10 @@ const defaultConfig = {
 //  prefix: "_",
 //  ruleCode: "<string of the code>",
   channelName: "<name of the channel to be sent in>",
-  guildId: 0,
-  readTheRulesRole: 0,
+  guildId: "",
+  readTheRulesRole: "",
   reactionEmoji: "<actual emoji>",
-  ruleMessageId: 0,
+  ruleMessageId: "",
   token: "<token of the bot>"
 };
 let stringDefaultConfig = JSON.stringify(defaultConfig);
@@ -49,10 +49,11 @@ function LoadConfig() {
 
 //  const ruleCode = global.gConfig.ruleCode;
   channelName = global.gConfig.channelName;
-  guildId = global.gConfig.guildId;
-  readTheRulesRole = global.gConfig.readTheRulesRole;
+  // For those variables with `substring(1);` at the end please place a random non-number at the beginning.
+  guildId = global.gConfig.guildId.substring(1);
+  readTheRulesRole = global.gConfig.readTheRulesRole.substring(1);
   reactionEmoji = global.gConfig.reactionEmoji;
-  ruleMessageId = global.gConfig.ruleMessageId;
+  ruleMessageId = global.gConfig.ruleMessageId.substring(1);
   token = global.gConfig.token;
 //  console.log("token: " + token);
 
