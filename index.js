@@ -1,99 +1,38 @@
 const { Client, Intents, ReactionCollector } = require("discord.js");
+var { channelId, guildId, reactionEmoji, readTheRulesRole, ruleMessageId, token } = require("./config.json");
 const client = new Client({
   intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS],
 });
-const fs = require('fs-extra');
-const _ = require('lodash');
-const path = require('path');
 
-const defaultConfig = {
-//  prefix: "_",
-//  ruleCode: "<string of the code>",
-  channelName: "<name of the channel to be sent in>",
-  guildId: "",
-  readTheRulesRole: "",
-  reactionEmoji: "<actual emoji>",
-  ruleMessageId: "",
-  token: "<token of the bot>"
-};
-let stringDefaultConfig = JSON.stringify(defaultConfig);
-let config = null;
-
-let channelName = null;
-let guildId = null;
-let readTheRulesRole = null;
-let reactionEmoji = null;
-let ruleMessageId = null;
-let token = null;
-
-function LoadConfig() {
-  if(fs.existsSync(path.resolve(__dirname, "config.json")) == false) {
-    fs.writeFileSync(path.resolve(__dirname, "config.json"), JSON.stringify(defaultConfig, null, 2), { overwrite: false }, function(err) {
-      if (err) throw err;
-
-      console.log("Wrote default config. Please edit it before starting again.");
-      return process.exit(2);
-    });
-  } else {
-    config = fs.readFileSync(path.resolve(__dirname, "config.json"), "utf-8");
-  }
-  if (!config) {
-    console.log("No config read.");
-    return process.exit(1);
-  }
-  const finalConfig = config;
-
-  global.gConfig = JSON.parse(finalConfig);
-
-//  console.log(`global.gConfig: ${JSON.stringify(global.gConfig, undefined, global.gConfig.json_indentation)}`);
-
-//  const ruleCode = global.gConfig.ruleCode;
-  channelName = global.gConfig.channelName;
-  // For those variables with `substring(1);` at the end please place a random non-number at the beginning.
-  guildId = global.gConfig.guildId.substring(1);
-  readTheRulesRole = global.gConfig.readTheRulesRole.substring(1);
-  reactionEmoji = global.gConfig.reactionEmoji;
-  ruleMessageId = global.gConfig.ruleMessageId.substring(1);
-  token = global.gConfig.token;
-//  console.log("token: " + token);
-
-  return true;
+if (channelId.charAt(0) === ".") {
+  channelId = channelId.replace(".", "");
+}
+if (guildId.charAt(0) === ".") {
+  guildId = guildId.replace(".", "");
+}
+if (readTheRulesRole.charAt(0) === ".") {
+  readTheRulesRole = readTheRulesRole.replace(".", "");
+}
+if (ruleMessageId.charAt(0) === ".") {
+  ruleMessageId = ruleMessageId.replace(".", "");
 }
 
 function CheckConfig() {
   let varErrors = 0;
-
-  const prefix = global.gConfig.prefix;
-//  if (prefix === "") {
-//    console.log("Command prefix cannot be blank");
-//    varErrors += 1;
-//  }
-//  if (ruleCode === "") {
-//    console.log("RuleCode cannot be blank.");
-//    varErrors += 1;
-//  }
-  if (!client.guilds.cache.find(guild => guild.id == guildId)) {
+  if (!client.guilds.cache.has(guildId)) {
     client.guilds.cache.each(guild => console.log("id: " + guild.id));
     console.log("Could not find guild by id, \'" + guildId + "\'.");
     varErrors += 1;
   }
-  if (!client.guilds.cache.find(guild => guild.id == guildId).channels.cache.find(channel => channel.name === channelName)) {
-    console.log("Could not find channel by the name of, \'" + channelName + "\' in guild, \'" + guildId + "\'.");
+  if (!client.guilds.cache.find(guild => guild.id == guildId).channels.cache.has(channelId)) {
+    console.log("Could not find channel by the name of, \'" + channelId + "\' in guild, \'" + guildId + "\'.");
     varErrors += 1;
   }
   if (reactionEmoji === "") {
     console.log("reactionEmoji cannot be blank.");
     varErrors += 1;
   }
-  if (ruleMessageId === "") {
-    console.log("ruleMessageId cannot be blank.");
-    varErrors += 1;
-  }
-  if (token === "" || token === defaultConfig.token) {
-    console.log("Please change the token variable to a bot token.");
-    varErrors += 1;
-  }
-  if (!client.guilds.cache.find(guild => guild.id == guildId).roles.cache.find(role => role.id == readTheRulesRole)) {
+  if (!client.guilds.cache.find(guild => guild.id == guildId).roles.cache.has(readTheRulesRole)) {
     console.log("Could not find the readTheRulesRole.");
     varErrors += 1;
   }
@@ -106,13 +45,9 @@ function CheckConfig() {
   }
 }
 
-process.on('exit', function(code) {
+process.on('exit', function (code) {
   return console.log(`About to exit with code ${code}`);
 });
-
-if (LoadConfig()) {
-  console.log("Config Loaded!");
-}
 
 client.on("ready", async () => {
   console.log("LillyBot is ready!");
@@ -123,13 +58,30 @@ client.on("ready", async () => {
 
 
   const guild = client.guilds.cache.get(guildId);
-  const channel = guild.channels.cache.find(channel => channel.name == channelName);
+  const channel = guild.channels.cache.find(channel => channel.id == channelId);
   const message = await channel.messages.fetch(ruleMessageId);
 
   await message.react(reactionEmoji);
   // Await message.reactions.removeAll();
 
-  const collector = new ReactionCollector(message, () => true, { dispose : true });
+  const collector = new ReactionCollector(message, () => true, { dispose: true });
+
+  var reaction = await message.reactions.cache.find(reaction => reaction.emoji.toString() === reactionEmoji).fetch();
+
+  var users = await reaction.users.fetch();
+
+  for (const [key, value] of users.entries()) {
+    var presentuser = await guild.members.fetch(key).catch(() => null);
+    if (presentuser !== null && !presentuser.user.bot) {
+      if (!presentuser.roles.cache.has(readTheRulesRole)) {
+        console.log(`User, "${presentuser.displayName}" has accepted the rules.`);
+        presentuser.roles.add(guild.roles.cache.get(readTheRulesRole).id).then(
+          reaction.users.remove(presentuser));
+      } else {
+        reaction.users.remove(presentuser);
+      }
+    }
+  }
 
   collector.on('collect', async (reaction, user) => {
     if (reaction.emoji.toString() !== reactionEmoji) {
@@ -139,8 +91,10 @@ client.on("ready", async () => {
       return;
     }
 
+    var guildUser;
+
     try {
-      var guildUser = await guild.members.fetch({ user, cache: true });
+      guildUser = await guild.members.fetch({ user, cache: true });
 
       if (guildUser == null) {
         return;
@@ -150,13 +104,13 @@ client.on("ready", async () => {
       console.log("Failed to get user by id: \'" + user.id + "\' From guild.");
     }
 
-    if (guildUser.roles.cache.find(r => r.id === readTheRulesRole)) {
-      return;
-    }
-    else {
-      console.log("User, \'" + guildUser.displayName + "\' has accepted the rules.");
-      guildUser.roles.add(guild.roles.cache.get(readTheRulesRole).id).then(
-      reaction.users.remove(user));
+    if (guildUser != undefined) {
+      if (guildUser.roles.cache.has(readTheRulesRole)) {
+        return;
+      } else {
+        console.log("User, \'" + guildUser.displayName + "\' has accepted the rules.");
+        guildUser.roles.add(guild.roles.cache.get(readTheRulesRole).id).then(reaction.users.remove(user));
+      }
     }
   });
 
@@ -166,20 +120,20 @@ client.on("ready", async () => {
 
   collector.on('remove', () => { //(reaction, user) => {
     //console.log("Emoji reaction was removed. Reacting now.");
-//    if (reaction.emoji.toString() !== reactionEmoji) {
-//      return;
-//    }
-//    try {
-//      var guildUser = await guild.members.fetch({ user, cache: true });
-//
-//      if (guildUser == null) {
-//        return;
-//      }
-//    }
-//    catch (e) {
-//      console.log("Failed to get user by id: \'" + user.id + "\' From guild.");
-//    }
-//    console.log("User, \'" + guildUser.displayName + "\', tried to remove their reaction");
+    //    if (reaction.emoji.toString() !== reactionEmoji) {
+    //      return;
+    //    }
+    //    try {
+    //      var guildUser = await guild.members.fetch({ user, cache: true });
+    //
+    //      if (guildUser == null) {
+    //        return;
+    //      }
+    //    }
+    //    catch (e) {
+    //      console.log("Failed to get user by id: \'" + user.id + "\' From guild.");
+    //    }
+    //    console.log("User, \'" + guildUser.displayName + "\', tried to remove their reaction");
     //await message.react(reactionEmoji);
   });
 
@@ -196,7 +150,7 @@ client.on("ready", async () => {
   const args = message.content.slice(prefix.length).trim().split(/ +/g);
   const command = args.shift().toLowerCase();
 
-  if (message.channel.name === channelName)
+  if (message.channel.name === channelId)
   {
     if (message.member.roles.cache.find(r => r.id === readTheRulesRole)) return;
     if (command == "rulecode") {
@@ -219,7 +173,7 @@ client.on("ready", async () => {
   } else {
     if (command === "rulecode") {
       message.delete();
-      message.channel.send("Please use the RuleCode command in the <#" + message.guild.channels.cache.find(channel => channel.name === channelName).id + "> channel.").then(msg => { console.log(message.author.tag + " sent the rule code command in the wrong channel."); msg.delete({ timeout: 10000 }); });
+      message.channel.send("Please use the RuleCode command in the <#" + message.guild.channels.cache.find(channel => channel.name === channelId).id + "> channel.").then(msg => { console.log(message.author.tag + " sent the rule code command in the wrong channel."); msg.delete({ timeout: 10000 }); });
     }
     console.log(message.content);
     if (message.content.includes(ruleCode)) {
