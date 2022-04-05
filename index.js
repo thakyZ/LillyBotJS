@@ -3,6 +3,25 @@ var { channelId, guildId, reactionEmoji, readTheRulesRole, ruleMessageId, token 
 const client = new Client({
   intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS],
 });
+const fs = require('fs');
+const _ = require('lodash');
+const path = require('path');
+
+var LoadBotChanges = function(client) {
+  if (fs.existsSync(`${__dirname}/botupdate.json`)) {
+    const { avatar, username, status } = require("./botupdate.json");
+    if (avatar !== "null") {
+      client.user.setAvatar(`./${avatar}`);
+    }
+    if (username !== "null") {
+      client.user.setUsername(`${username}`);
+    }
+    if (status !== "null") {
+      client.user.setStatus(`${status}`);
+    }
+  }
+}
+
 
 if (channelId.charAt(0) === ".") {
   channelId = channelId.replace(".", "");
@@ -56,6 +75,7 @@ client.on("ready", async () => {
     console.log("Config Valid!");
   }
 
+  LoadBotChanges(client);
 
   const guild = client.guilds.cache.get(guildId);
   const channel = guild.channels.cache.find(channel => channel.id == channelId);
