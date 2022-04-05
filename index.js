@@ -80,6 +80,12 @@ client.on("ready", async () => {
       } else {
         reaction.users.remove(presentuser);
       }
+    } else if (presentuser === null) {
+      try {
+        reaction.users.remove(value);
+      } catch (e) {
+        console.log(`Failed to remove reaction from user '${value.username}' with id '${value.id}'.`);
+      }
     }
   }
 
@@ -106,7 +112,7 @@ client.on("ready", async () => {
 
     if (guildUser != undefined) {
       if (guildUser.roles.cache.has(readTheRulesRole)) {
-        return;
+        reaction.users.remove(user);
       } else {
         console.log("User, \'" + guildUser.displayName + "\' has accepted the rules.");
         guildUser.roles.add(guild.roles.cache.get(readTheRulesRole).id).then(reaction.users.remove(user));
