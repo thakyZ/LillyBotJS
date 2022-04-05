@@ -19,8 +19,13 @@ var LoadBotChanges = function(client) {
     if (status !== "null") {
       client.user.setStatus(`${status}`);
     }
+    fs.rename("./botupdate.json", "./botupdate.json.old", (err) => {
+      if (err) {
+        console.error(err);
+      }
+    });
   }
-}
+};
 
 
 if (channelId.charAt(0) === ".") {
