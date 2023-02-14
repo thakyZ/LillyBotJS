@@ -1,6 +1,6 @@
 {
   "name": "lillybot-node",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A discord bot for Neko Gaming",
   "main": "index.js",
   "scripts": {
