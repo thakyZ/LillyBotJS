@@ -631,3 +631,4 @@ config/config.json
 config/readme.txt
 config/images/**/*.*
 !config/images/.gitkeep
+package-lock.json
