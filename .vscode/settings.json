@@ -1,0 +1,44 @@
+{
+  "eslint.experimental.useFlatConfig": true,
+  "eslint.format.enable": true,
+  "eslint.lintTask.enable": true,
+  "eslint.options": {
+    "overrideConfigFile": "./eslint.config.mjs"
+  },
+  "eslint.runtime": "C:/Program Files/nodejs/node.exe",
+  "eslint.nodePath": "./node_modules/",
+  "files.associations": {
+    "OnlineClock.Blocked.user.css": "stylus",
+    "FFXIV_Lodestone_Maint_Dark.user.css": "stylus"
+  },
+  "editor.defaultFormatter": null,
+  "editor.formatOnPaste": false, // required
+  "editor.formatOnType": false, // required
+  "editor.formatOnSave": false,
+  "[less]": {
+    "editor.defaultFormatter": "rvest.vs-code-prettier-eslint",
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+  },
+  "[css]": {
+    "editor.defaultFormatter": "vscode.css-language-features",
+  },
+  "editor.quickSuggestions": {
+    "other": true,
+    "comments": false,
+    "strings": false
+  },
+  "editor.acceptSuggestionOnCommitCharacter": true,
+  "editor.acceptSuggestionOnEnter": "on",
+  "editor.quickSuggestionsDelay": 10,
+  "editor.suggestOnTriggerCharacters": true,
+  "editor.tabCompletion": "off",
+  "editor.suggest.localityBonus": true,
+  "editor.suggestSelection": "first",
+  "editor.wordBasedSuggestions": true,
+  "editor.parameterHints.enabled": true,
+  "npm.executable.path": "C:\\Progra~1\\nodejs\\npm.cmd",
+  "npm-intellisense.importDeclarationType": "const",
+  "npm-intellisense.importES6": true
+}

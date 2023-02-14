@@ -1,0 +1,24 @@
+{
+  "rules": {
+    "channelId": "0",
+    "file": "readme.txt",
+    "images": [
+      ""
+
+
+    ],
+    "acceptButton": {
+      "id": "readAndAgreeToRules",
+      "label": "I agree to the rules.",
+      "style": "primary",
+      "emoji": "✅"
+    }
+  },
+  "adminChannel": "0",
+  "botLogChannel": "0",
+  "botCommandsChannel": "0",
+  "guildId": "0",
+  "readTheRulesRole": "0",
+  "ruleMessageId": "0",
+  "token": "_"
+}

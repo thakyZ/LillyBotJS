@@ -1,10 +1,11 @@
 {
-  "name": "lillybotjs",
+  "name": "lillybot-node",
   "version": "1.0.0",
   "description": "A discord bot for Neko Gaming",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "cross-env ESLINT_USE_FLAT_CONFIG=true eslint --config=eslint.config.mjs ."
   },
   "repository": {
     "type": "git",
@@ -15,6 +16,7 @@
     "bot",
     "nodejs"
   ],
+  "type": "commonjs",
   "author": "NekoBoiNick",
   "license": "MIT",
   "bugs": {
@@ -22,8 +24,13 @@
   },
   "homepage": "https://github.com/thakyz/LillyBotJS#readme",
   "dependencies": {
-    "discord.js": "^13.6.0",
+    "discord-api-types": "^0.37.33",
+    "discord.js": "^14.7.1",
     "fs-extra": "^9.1.0",
     "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "eslint": "^8.34.0"
   }
 }

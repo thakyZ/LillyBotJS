@@ -1,62 +1,99 @@
-const { Client, Intents, ReactionCollector } = require("discord.js");
-var { channelId, guildId, reactionEmoji, readTheRulesRole, ruleMessageId, token } = require("./config.json");
-const client = new Client({
-  intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS],
-});
-const fs = require('fs');
-const _ = require('lodash');
-const path = require('path');
+/**
+ * @type {import('discord-api-types/v10').APIEmoji}
+ */
 
-var LoadBotChanges = function(client) {
-  if (fs.existsSync(`${__dirname}/botupdate.json`)) {
-    const { avatar, username, status } = require("./botupdate.json");
-    if (avatar !== "null") {
-      client.user.setAvatar(`./${avatar}`);
+const { REST, Routes, ActionRowBuilder, Client, GatewayIntentBits, ButtonStyle, ChannelType, ButtonBuilder, Events, Collection } = require("discord.js");
+const constants = require("./lib/constants.js");
+constants.client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMessageReactions,
+    GatewayIntentBits.MessageContent
+  ],
+});
+const { promises: fs, existsSync } = require("fs");
+const path = require("path");
+
+const loadCommands = async () => {
+  const commandsPath = path.join(__dirname, "lib", "commands");
+  const commandFiles = await fs.readdir(commandsPath);
+  const commandFilesFiltered = commandFiles.filter(file => file.endsWith(".js"));
+  for (const file of commandFilesFiltered) {
+    const filePath = path.join(commandsPath, file);
+    const command = require(filePath);
+    if ("data" in command && "execute" in command) {
+      constants.commands.push(command.data.toJSON());
+      constants.client.commands.set(command.data.name, command);
+    } else {
+      console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
     }
-    if (username !== "null") {
-      client.user.setUsername(`${username}`);
-    }
-    if (status !== "null") {
-      client.user.setStatus(`${status}`);
-    }
-    fs.rename("./botupdate.json", "./botupdate.json.old", (err) => {
-      if (err) {
-        console.error(err);
-      }
-    });
   }
 };
 
+const rest = new REST({ version: "10" });
 
-if (channelId.charAt(0) === ".") {
-  channelId = channelId.replace(".", "");
-}
-if (guildId.charAt(0) === ".") {
-  guildId = guildId.replace(".", "");
-}
-if (readTheRulesRole.charAt(0) === ".") {
-  readTheRulesRole = readTheRulesRole.replace(".", "");
-}
-if (ruleMessageId.charAt(0) === ".") {
-  ruleMessageId = ruleMessageId.replace(".", "");
-}
+const sendRestRequest = async (_client, guildId) => {
+  await loadCommands();
+  try {
+    console.log(`Started refreshing ${constants.commands.length} application (/) commands.`);
 
-function CheckConfig() {
+    const data = await rest.put(
+      Routes.applicationGuildCommands(_client.user.id, guildId),
+      { body: constants.commands },
+    );
+
+    console.log(`Successfully reloaded ${data.length} application (/) commands.`);
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const loadBotChanges = async _client => {
+  if (existsSync(`${__dirname}/botupdate.json`)) {
+    const updateFile = await fs.readFile(path.join(__dirname, "botupdate.json"), { encoding: "utf-8", flag: "r+" });
+    const update = JSON.parse(updateFile);
+    if (update.avatar !== "null") {
+      _client.user.setAvatar(`./${update.avatar}`);
+    }
+
+    if (update.username !== "null") {
+      _client.user.setUsername(`${update.username}`);
+    }
+
+    if (update.status !== "null") {
+      _client.user.setStatus(`${update.status}`);
+    }
+
+    try {
+      fs.rename(path.join(__dirname, "botupdate.json"), path.join(__dirname, "botupdate.old.json"));
+    } catch (error) {
+      console.error(error);
+    }
+  }
+};
+
+const checkConfig = _client => {
   let varErrors = 0;
-  if (!client.guilds.cache.has(guildId)) {
-    client.guilds.cache.each(guild => console.log("id: " + guild.id));
-    console.log("Could not find guild by id, \'" + guildId + "\'.");
+
+  if (!constants.client.guilds.cache.has(constants.config.guildId)) {
+    constants.client.guilds.cache.each(guild => console.log(`id: ${guild.id}`));
+    console.log(`Could not find guild by id, '${constants.config.guildId}'.`);
     varErrors += 1;
   }
-  if (!client.guilds.cache.find(guild => guild.id == guildId).channels.cache.has(channelId)) {
-    console.log("Could not find channel by the name of, \'" + channelId + "\' in guild, \'" + guildId + "\'.");
+
+  if (!constants.client.guilds.cache.find(guild => guild.id === constants.config.guildId).channels.cache.has(constants.config.rules.channelId)) {
+    console.log(`Could not find channel by the name of, '${constants.config.channelId}' in guild, '${constants.config.guildId}'.`);
     varErrors += 1;
   }
-  if (reactionEmoji === "") {
+
+  if (constants.config.reactionEmoji === "") {
     console.log("reactionEmoji cannot be blank.");
     varErrors += 1;
   }
-  if (!client.guilds.cache.find(guild => guild.id == guildId).roles.cache.has(readTheRulesRole)) {
+
+  if (!constants.client.guilds.cache.find(guild => guild.id === constants.config.guildId).roles.cache.has(constants.config.readTheRulesRole)) {
     console.log("Could not find the readTheRulesRole.");
     varErrors += 1;
   }
@@ -64,154 +101,113 @@ function CheckConfig() {
   if (varErrors > 0) {
     console.log("Please fix all outstanding errors.");
     return process.exit(varErrors + 2);
-  } else {
-    return true;
   }
-}
 
-process.on('exit', function (code) {
-  return console.log(`About to exit with code ${code}`);
+  return true;
+};
+
+process.on("exit", code => console.log(`About to exit with code ${code}`));
+
+const getParseEmoji = (emoji, _client) => {
+  const getGuildEmoji = _client.emojis.cache.find(emote => emote.name === emoji);
+  if (getGuildEmoji === undefined) {
+    const resolvedEmoji = _client.emojis.resolveIdentifier(emoji);
+    return resolvedEmoji;
+  }
+
+  return getGuildEmoji;
+};
+
+const getParseStyle = style => {
+  switch (style.toLowerCase()) {
+  case "secondary":
+    return ButtonStyle.Primary;
+  case "success":
+    return ButtonStyle.Primary;
+  case "danger":
+    return ButtonStyle.Primary;
+  case "link":
+    return ButtonStyle.Primary;
+  case "primary":
+  default:
+    return ButtonStyle.Primary;
+  }
+};
+
+constants.client.once(Events.ClientReady, async _client => {
+  console.log("LillyBot is ready!");
+  constants.client.commands = new Collection();
+
+  if (checkConfig(_client)) {
+    console.log("Config is Valid!");
+  }
+
+  await loadBotChanges(_client);
+
+  constants.buttons[constants.config.rules.acceptButton.id] = new ActionRowBuilder()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId(constants.config.rules.acceptButton.id)
+        .setLabel(constants.config.rules.acceptButton.label)
+        .setStyle(getParseStyle(constants.config.rules.acceptButton.style))
+        .setEmoji(getParseEmoji(constants.config.rules.acceptButton.emoji, _client)),
+    );
+
+  const guild = _client.guilds.cache.find(guild => guild.id === constants.config.guildId);
+  const channel = guild.channels.cache.find(channel => channel.id === constants.config.rules.channelId);
+
+  await sendRestRequest(_client, guild.id);
+
+  if (channel.type !== ChannelType.GuildText) {
+    console.error(`Channel with ID: '${constants.config.rules.channelId}' is not a text channel.`);
+    process.exit(1);
+  }
 });
 
-client.on("ready", async () => {
-  console.log("LillyBot is ready!");
-
-  if (CheckConfig()) {
-    console.log("Config Valid!");
-  }
-
-  LoadBotChanges(client);
-
-  const guild = client.guilds.cache.get(guildId);
-  const channel = guild.channels.cache.find(channel => channel.id == channelId);
-  const message = await channel.messages.fetch(ruleMessageId);
-
-  await message.react(reactionEmoji);
-  // Await message.reactions.removeAll();
-
-  const collector = new ReactionCollector(message, () => true, { dispose: true });
-
-  var reaction = await message.reactions.cache.find(reaction => reaction.emoji.toString() === reactionEmoji).fetch();
-
-  var users = await reaction.users.fetch();
-
-  for (const [key, value] of users.entries()) {
-    var presentuser = await guild.members.fetch(key).catch(() => null);
-    if (presentuser !== null && !presentuser.user.bot) {
-      if (!presentuser.roles.cache.has(readTheRulesRole)) {
-        console.log(`User, "${presentuser.displayName}" has accepted the rules.`);
-        presentuser.roles.add(guild.roles.cache.get(readTheRulesRole).id).then(
-          reaction.users.remove(presentuser));
-      } else {
-        reaction.users.remove(presentuser);
-      }
-    } else if (presentuser === null) {
-      try {
-        reaction.users.remove(value);
-      } catch (e) {
-        console.log(`Failed to remove reaction from user '${value.username}' with id '${value.id}'.`);
-      }
-    }
-  }
-
-  collector.on('collect', async (reaction, user) => {
-    if (reaction.emoji.toString() !== reactionEmoji) {
+constants.client.on(Events.InteractionCreate, async interaction => {
+  if (interaction.isChatInputCommand()) {
+    const command = interaction.client.commands.get(interaction.commandName);
+    if (!command) {
+      console.error(`No command matching ${interaction.commandName} was found.`);
       return;
     }
-    if (user.bot) {
-      return;
-    }
-
-    var guildUser;
 
     try {
-      guildUser = await guild.members.fetch({ user, cache: true });
-
-      if (guildUser == null) {
-        return;
+      await command.execute(interaction);
+    } catch (error) {
+      console.error(error);
+      await interaction.reply({ content: "There was an error while executing this command!", ephemeral: true });
+    }
+  } else if (interaction.isButton()) {
+    if (interaction.customId === constants.config.rules.acceptButton.id) {
+      try {
+        const guild = constants.client.guilds.resolve(interaction.guildId);
+        const member = await guild.members.fetch(interaction.user.id);
+        const readTheRules = await guild.roles.fetch(constants.config.readTheRulesRole);
+        if (member.user.bot === false && member.roles.resolve(constants.config.readTheRulesRole) === null) {
+          await member.roles.add(readTheRules, `${member.user.username} accepted the rules`);
+        }
+      } catch (error) {
+        console.error(error);
+        await interaction.reply({ content: "There was an error when accepting the rules...\nPlease contact an administrator.", ephemeral: true });
+      } finally {
+        await interaction.reply({ content: "Thank you for accepting and agreeing to the rules.", ephemeral: true });
       }
-    }
-    catch (e) {
-      console.log("Failed to get user by id: \'" + user.id + "\' From guild.");
-    }
-
-    if (guildUser != undefined) {
-      if (guildUser.roles.cache.has(readTheRulesRole)) {
-        reaction.users.remove(user);
-      } else {
-        console.log("User, \'" + guildUser.displayName + "\' has accepted the rules.");
-        guildUser.roles.add(guild.roles.cache.get(readTheRulesRole).id).then(reaction.users.remove(user));
-      }
-    }
-  });
-
-  collector.on('create', () => {
-    console.log('Emoji reaction was created. All is good.');
-  });
-
-  collector.on('remove', () => { //(reaction, user) => {
-    //console.log("Emoji reaction was removed. Reacting now.");
-    //    if (reaction.emoji.toString() !== reactionEmoji) {
-    //      return;
-    //    }
-    //    try {
-    //      var guildUser = await guild.members.fetch({ user, cache: true });
-    //
-    //      if (guildUser == null) {
-    //        return;
-    //      }
-    //    }
-    //    catch (e) {
-    //      console.log("Failed to get user by id: \'" + user.id + "\' From guild.");
-    //    }
-    //    console.log("User, \'" + guildUser.displayName + "\', tried to remove their reaction");
-    //await message.react(reactionEmoji);
-  });
-
-  collector.on('dispose', () => {
-    console.log('Emoji reaction message was disposed. But why?');
-    //await message.react(reactionEmoji);
-  });
-});
-
-/*client.on("message", (message) => {
-  // Exit and stop if it's not there
-  if (!message.content.startsWith(prefix) || message.author.bot) return;
-
-  const args = message.content.slice(prefix.length).trim().split(/ +/g);
-  const command = args.shift().toLowerCase();
-
-  if (message.channel.name === channelId)
-  {
-    if (message.member.roles.cache.find(r => r.id === readTheRulesRole)) return;
-    if (command == "rulecode") {
-      const phrase = args.join(" ");
-
-      if (phrase === ruleCode) {
-        message.delete();
-        message.member.roles.add(message.guild.roles.cache.get(readTheRulesRole).id);
-        message.channel.send("Thank you, " + message.member.nickname + " for accepting and reading the rules.").then(msg => { console.log(message.author.tag + " sent the right rule code."); msg.delete({ timeout: 10000 }) });
-      } else {
-        message.delete();
-        message.channel.send("Sorry, " + message.member.nickname + ", but that is not the right rule code.").then(msg => { console.log(message.author.tag + " sent the wrong rule code."); msg.delete({ timeout: 10000 }) });
-      }
-    } else {
-      if (message.content.includes(ruleCode)) {
-        message.delete();
-        message.channel.send("Sorry, " + message.member.nickname + ", seems like you read the rules and used the right code but wrong command. The command is `_RuleCode` you typed: `_" + command + "`.").then(msg => { console.log(message.author.tag + " sent the right code but wrong command. Used \"_" + command + "\"."); msg.delete({ timeout: 10000 }) });
-      }
-    }
-  } else {
-    if (command === "rulecode") {
-      message.delete();
-      message.channel.send("Please use the RuleCode command in the <#" + message.guild.channels.cache.find(channel => channel.name === channelId).id + "> channel.").then(msg => { console.log(message.author.tag + " sent the rule code command in the wrong channel."); msg.delete({ timeout: 10000 }); });
-    }
-    console.log(message.content);
-    if (message.content.includes(ruleCode)) {
-      message.delete();
-      console.log(message.author.tag + " sent the rule code in a different channel");
     }
   }
-});*/
+});
 
-client.login(token);
+const run = async () => {
+  try {
+    const configFile = await fs.readFile(path.join(__dirname, "config", "config.json"), { encoding: "utf-8", flag: "r+" });
+    constants.config = JSON.parse(configFile.toString());
+  } catch (error) {
+    console.error(`failed to read constants.config file at: ${path.join(__dirname, "config", "config.json")}.`);
+    console.error(error);
+  }
+
+  rest.setToken(constants.config.token);
+  constants.client.login(constants.config.token);
+};
+
+run();
