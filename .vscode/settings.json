@@ -36,7 +36,7 @@
   "editor.tabCompletion": "off",
   "editor.suggest.localityBonus": true,
   "editor.suggestSelection": "first",
-  "editor.wordBasedSuggestions": true,
+  "editor.wordBasedSuggestions": "matchingDocuments",
   "editor.parameterHints.enabled": true,
   "npm.executable.path": "C:\\Progra~1\\nodejs\\npm.cmd",
   "npm-intellisense.importDeclarationType": "const",
